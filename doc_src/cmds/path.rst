@@ -13,7 +13,7 @@ Synopsis
     path extension GENERAL_OPTIONS [PATH ...]
     path filter GENERAL_OPTIONS [-v | --invert]
         [-d] [-f] [-l] [-r] [-w] [-x]
-        [(-t | --type) TYPE] [(-p | --perm) PERMISSION] [PATH ...]
+        [(-t | --type) TYPE] [(-p | --perm) PERMISSION] [--all] [PATH ...]
     path is GENERAL_OPTIONS [(-v | --invert)] [(-t | --type) TYPE]
         [-d] [-f] [-l] [-r] [-w] [-x]
         [(-p | --perm) PERMISSION] [PATH ...]
@@ -22,7 +22,7 @@ Synopsis
     path resolve GENERAL_OPTIONS [PATH ...]
     path change-extension GENERAL_OPTIONS EXTENSION [PATH ...]
     path sort GENERAL_OPTIONS [-r | --reverse]
-        [-u | --unique] [--key=basename|dirname|path] [PATH ...]
+        [-u | --unique] [--key=basename | dirname | path] [PATH ...]
 
     GENERAL_OPTIONS
         [-z | --null-in] [-Z | --null-out] [-q | --quiet]
@@ -34,7 +34,8 @@ Description
 
 PATH arguments are taken from the command line unless standard input is connected to a pipe or a file, in which case they are read from standard input, one PATH per line. It is an error to supply PATH arguments on both the command line and on standard input.
 
-Arguments starting with ``-`` are normally interpreted as switches; ``--`` causes the following arguments not to be treated as switches even if they begin with ``-``. Switches and required arguments are recognized only on the command line.
+Arguments starting with ``-`` are normally interpreted as switches
+ ``--`` causes the following arguments not to be treated as switches even if they begin with ``-``. Switches and required arguments are recognized only on the command line.
 
 When a path starts with ``-``, ``path filter`` and ``path normalize`` will prepend ``./`` on output to avoid it being interpreted as an option otherwise, so it's safe to pass path's output to other commands that can handle relative paths.
 
@@ -50,7 +51,7 @@ The following subcommands are available.
 
 .. _cmd-path-basename:
 
-"basename" subcommand
+basename subcommand
 ---------------------
 
 ::
@@ -59,7 +60,7 @@ The following subcommands are available.
 
 ``path basename`` returns the last path component of the given path, by removing the directory prefix and removing trailing slashes. In other words, it is the part that is not the dirname. For files you might call it the "filename".
 
-If the ``-E`` or ``---no-extension`` option is used and the base name contained a period, the path is returned with the extension (or the last extension) removed, i.e. the "filename" without an extension (akin to calling ``path change-extension "" (path basename $path)``).
+If the ``-E`` or ``---no-extension`` option is used and the base name contained a period, the path is returned with the extension (or the last extension) removed, i.e. the filename without an extension (akin to calling ``path change-extension "" (path basename $path)``).
 
 It returns 0 if there was a basename, i.e. if the path wasn't empty or just slashes.
 
@@ -110,14 +111,14 @@ Examples
    >_ path dirname /usr/bin/
    /usr
 
-"extension" subcommand
+extension subcommand
 -----------------------
 
 ::
 
     path extension [-z | --null-in] [-Z | --null-out] [-q | --quiet] [PATH ...]
 
-``path extension`` returns the extension of the given path. This is the part after (and including) the last ".", unless that "." followed a "/" or the basename is "." or "..", in which case there is no extension and an empty line is printed.
+``path extension`` returns the extension of the given path. This is the part after (and including) the last ".", unless that "." followed a / or the basename is "." or "..", in which case there is no extension and an empty line is printed.
 
 If the filename ends in a ".", only a "." is printed.
 
@@ -148,26 +149,26 @@ Examples
    > echo $path$extension
    # reconstructs the original path again.
    ./foo.mp4
-   
+
 .. _cmd-path-filter:
 
-"filter" subcommand
+filter subcommand
 --------------------
 
 ::
 
     path filter [-z | --null-in] [-Z | --null-out] [-q | --quiet] \
         [-d] [-f] [-l] [-r] [-w] [-x] \
-        [-v | --invert] [(-t | --type) TYPE] [(-p | --perm) PERMISSION] [PATH ...]
+        [-v | --invert] [(-t | --type) TYPE] [(-p | --perm) PERMISSION] [--all] [PATH ...]
 
 ``path filter`` returns all of the given paths that match the given checks. In all cases, the paths need to exist, nonexistent paths are always filtered.
 
 The available filters are:
 
-- ``-t`` or ``--type`` with the options: "dir", "file", "link", "block", "char", "fifo" and "socket", in which case the path needs to be a directory, file, link, block device, character device, named pipe or socket, respectively.
+- ``-t`` or ``--type`` with the options: "dir", "file", "link", "block", "char", fifo and "socket", in which case the path needs to be a directory, file, link, block device, character device, named pipe or socket, respectively.
 - ``-d``, ``-f`` and ``-l`` are short for ``--type=dir``, ``--type=file`` and ``--type=link``, respectively. There are no shortcuts for the other types.
 
-- ``-p`` or ``--perm`` with the options: "read", "write", and "exec", as well as "suid", "sgid", "user" (referring to the path owner) and "group" (referring to the path's group), in which case the path needs to have all of the given permissions for the current user.
+- ``-p`` or ``--perm`` with the options: "read", "write", and "exec", as well as "suid", "sgid", user (referring to the path owner) and group (referring to the path's group), in which case the path needs to have all of the given permissions for the current user.
 - ``-r``, ``-w`` and ``-x`` are short for ``--perm=read``, ``--perm=write`` and ``--perm=exec``, respectively. There are no shortcuts for the other permissions.
 
 Note that the path needs to be *any* of the given types, but have *all* of the given permissions. This is because having a path that is both writable and executable makes sense, but having a path that is both a directory and a file doesn't. Links will count as the type of the linked-to file, so links to files count as files, links to directories count as directories.
@@ -179,6 +180,10 @@ With ``--invert``, the meaning of the filtering is inverted - any path that woul
 When a path starts with ``-``, ``path filter`` will prepend ``./`` to avoid it being interpreted as an option otherwise.
 
 It returns 0 if at least one path passed the filter.
+
+With ``--all``, return status 0 (true) if all paths pass the filter, and status 1 (false) if any path fails. This is equivalent to ``not path filter -v``. It produces no output, only a status.
+
+When ``--all`` combined with ``--invert``, it returns status 0 (true) if all paths fail the filter and status 1 (false) if any path passes.
 
 ``path is`` is shorthand for ``path filter -q``, i.e. just checking without producing output, see :ref:`The is subcommand <cmd-path-is>`.
 
@@ -210,6 +215,9 @@ Examples
    
    >_ path filter -fx $PATH/*
    # Prints all possible commands - the first entry of each name is what fish would execute!
+
+   >_ path filter --all /usr/bin /usr/argagagji
+   # This returns 1 (false) because not all paths pass the filter.
 
 .. _cmd-path-is:
 
